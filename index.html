@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Takkyubin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Takkyubin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F3F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1117" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.png">
+<style>
+  /* Enveloppe de l'app : aucune donnée ici, tout est chargé depuis Google Apps Script. */
+  :root { --bg: #F2F3F6; --ink: #161D33; --muted: #5F6880; --red: #C4342C; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0E1117; --ink: #E6E9F0; --muted: #9BA3B5; --red: #E45B52; color-scheme: dark; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: -apple-system, "Hiragino Sans", system-ui, sans-serif; }
+  #frame { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); bottom: 0; width: 100%; height: calc(100% - env(safe-area-inset-top, 0px)); border: 0; background: var(--bg); opacity: 0; transition: opacity .2s; }
+  #frame.ready { opacity: 1; }
+  #splash { position: fixed; inset: 0; display: grid; place-items: center; }
+  .seal { width: 76px; height: 76px; border-radius: 50%; background: var(--red); color: var(--bg); display: grid; place-items: center; font-size: 36px; font-weight: 800; transform: rotate(-8deg); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: rotate(-8deg) scale(.92); opacity: .75; } }
+  @media (prefers-reduced-motion: reduce) { .seal { animation: none; } }
+  .msg { max-width: 320px; padding: 0 24px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5; }
+  .msg b { color: var(--ink); }
+</style>
+</head>
+<body>
+<div id="splash"><div class="seal" aria-label="Chargement">宅</div></div>
+<script>
+  // Adresse de l'app (Google Apps Script). Seule la clé, gardée sur cet appareil, donne accès aux données.
+  const APP = 'https://script.google.com/macros/s/AKfycbyQ4XR8naWr8LNGiYwpPWRhXwuyHEPvpOMsdG2vFQWY5Af_XLXUk6ltjLF5MjXaPBA/exec';
+  const q = new URLSearchParams(location.search);
+  let key = null;
+  const friend = q.get('f');             // lien d'un ami : jamais mémorisé
+  if (!friend) {
+    if (q.get('k')) { try { localStorage.setItem('tk-key', q.get('k')); } catch (e) {} }
+    try { key = q.get('k') || localStorage.getItem('tk-key'); } catch (e) { key = q.get('k'); }
+  }
+  // Retire la clé de la barre d'adresse (l'icône d'écran d'accueil reste valable grâce au stockage local).
+  if (q.get('k')) history.replaceState(null, '', location.pathname);
+
+  const token = friend || key;
+  if (!token) {
+    document.getElementById('splash').innerHTML =
+      '<p class="msg">Ouvre une première fois <b>ton lien personnel</b> pour accéder à Takkyubin.</p>';
+  } else {
+    const f = document.createElement('iframe');
+    f.id = 'frame';
+    f.title = 'Takkyubin';
+    f.allow = 'clipboard-write';
+    f.src = APP + '?k=' + encodeURIComponent(token);
+    f.onload = () => { f.classList.add('ready'); setTimeout(() => document.getElementById('splash').remove(), 250); };
+    document.body.appendChild(f);
+  }
+</script>
+</body>
+</html>
