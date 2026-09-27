@@ -2,7 +2,6 @@
   "name": "Takkyubin",
   "short_name": "Takkyubin",
   "lang": "fr",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F2F3F6",

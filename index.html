@@ -41,8 +41,8 @@
     if (q.get('k')) { try { localStorage.setItem('tk-key', q.get('k')); } catch (e) {} }
     try { key = q.get('k') || localStorage.getItem('tk-key'); } catch (e) { key = q.get('k'); }
   }
-  // Retire la clé de la barre d'adresse (l'icône d'écran d'accueil reste valable grâce au stockage local).
-  if (q.get('k')) history.replaceState(null, '', location.pathname);
+  // La clé reste dans l'adresse : sur iPhone, l'icône d'écran d'accueil reprend l'adresse telle quelle
+  // et n'a pas accès à la mémoire de Safari.
 
   const token = friend || key;
   if (!token) {
