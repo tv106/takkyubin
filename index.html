@@ -49,6 +49,24 @@
   // et n'a pas accès à la mémoire de Safari.
 
   const token = friend || key;
+
+  // Manifeste construit à la volée : l'icône d'écran d'accueil s'ouvre avec la clé dans l'adresse,
+  // sans dépendre de la mémoire du navigateur (qui peut être vidée).
+  if (token) {
+    const base = location.origin + location.pathname;
+    const start = base + (friend ? '?f=' : '?k=') + encodeURIComponent(token);
+    const manifest = {
+      name: 'Takkyubin', short_name: 'Takkyubin', lang: 'fr', display: 'standalone', scope: base, start_url: start,
+      background_color: '#F2F3F6', theme_color: '#F2F3F6',
+      icons: [
+        { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: base + 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      ]
+    };
+    document.querySelector('link[rel=manifest]').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifest));
+    if (!location.search) history.replaceState(null, '', start);
+  }
   if (!token) {
     // Première ouverture sans clé (ex. icône d'écran d'accueil sur iPhone) : on colle le lien une fois, il est mémorisé.
     const splash = document.getElementById('splash');
