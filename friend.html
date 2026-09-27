@@ -296,7 +296,7 @@ let D = null, open = null, allPays = false, shown = 10;
 /** Sous le prix d'achat : commission, port au Japon et remise, s'il y en a. */
 function extras(i, tiny) {
   const parts = [];
-  if (i.commission) parts.push('+ ' + yen(i.commission) + ' de commission');
+  if (i.commission) parts.push('+ ' + yen(i.commission) + (D.tip ? ' de pourboire, merci !' : ' de commission'));
   if (i.shipJp) parts.push('+ ' + yen(i.shipJp) + ' de port');
   if (i.discount) parts.push('− ' + yen(i.discount) + ' de remise');
   return parts.map(p => `<div class="note" style="font-size:${tiny ? '11px' : '11.5px'}">${p}</div>`).join('');
