@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#F2F3F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1117" media="(prefers-color-scheme: dark)">
 <meta name="robots" content="noindex">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest?v=3">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.png">
 <style>
@@ -27,6 +27,10 @@
   @media (prefers-reduced-motion: reduce) { .seal { animation: none; } }
   .msg { max-width: 320px; padding: 0 24px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5; }
   .msg b { color: var(--ink); }
+  form { display: grid; gap: 10px; width: min(340px, calc(100% - 48px)); }
+  input { font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 1px solid #DDE1E8; background: #fff; color: #161D33; }
+  button { font: inherit; font-weight: 700; font-size: 16px; padding: 12px; border: 0; border-radius: 12px; background: #23407E; color: #fff; }
+  .err { color: var(--red); font-size: 14px; min-height: 1.2em; text-align: center; }
 </style>
 </head>
 <body>
@@ -46,8 +50,22 @@
 
   const token = friend || key;
   if (!token) {
-    document.getElementById('splash').innerHTML =
-      '<p class="msg">Ouvre une première fois <b>ton lien personnel</b> pour accéder à Takkyubin.</p>';
+    // Première ouverture sans clé (ex. icône d'écran d'accueil sur iPhone) : on colle le lien une fois, il est mémorisé.
+    const splash = document.getElementById('splash');
+    splash.innerHTML = `<form id="setup">
+        <p class="msg">Colle <b>ton lien personnel</b> Takkyubin (une seule fois).</p>
+        <input id="link" type="url" placeholder="https://tv106.github.io/takkyubin/?k=…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button type="submit">Ouvrir</button>
+        <div class="err" id="err"></div>
+      </form>`;
+    document.getElementById('setup').addEventListener('submit', e => {
+      e.preventDefault();
+      const raw = document.getElementById('link').value.trim();
+      const m = /[?&]k=([A-Za-z0-9]+)/.exec(raw) || /^([a-f0-9]{30,})$/i.exec(raw);
+      if (!m) { document.getElementById('err').textContent = 'Ce n’est pas un lien Takkyubin valide.'; return; }
+      try { localStorage.setItem('tk-key', m[1]); } catch (x) {}
+      location.replace(location.pathname + '?k=' + m[1]);
+    });
   } else {
     const f = document.createElement('iframe');
     f.id = 'frame';
