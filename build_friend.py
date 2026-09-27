@@ -29,7 +29,7 @@ head = '''<title>Ma box · Takkyubin</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ma box">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" href="favicon.png">
+<link rel="icon" type="image/png" href="favicon.png?v=2">
 <link rel="manifest" href="manifest.webmanifest?v=3">
 <script>
   // Icône d'écran d'accueil : elle rouvre cette page avec le lien personnel.
