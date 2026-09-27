@@ -39,6 +39,8 @@
   // Adresse de l'app (Google Apps Script). Seule la clé, gardée sur cet appareil, donne accès aux données.
   const APP = 'https://script.google.com/macros/s/AKfycbyQ4XR8naWr8LNGiYwpPWRhXwuyHEPvpOMsdG2vFQWY5Af_XLXUk6ltjLF5MjXaPBA/exec';
   const q = new URLSearchParams(location.search);
+  // Lien d'un ami : page statique (fonctionne partout, y compris dans Instagram).
+  if (q.get('f')) location.replace('friend.html' + location.search);
   let key = null;
   const friend = q.get('f');             // lien d'un ami : jamais mémorisé
   if (!friend) {
