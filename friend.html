@@ -204,6 +204,14 @@ textarea{min-height:150px;font-size:14px;line-height:1.5}
 [data-look="anime"] .hero::after{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 6 L61 39 L95 39 L67 60 L78 94 L50 73 L22 94 L33 60 L5 39 L39 39 Z' fill='none' stroke='%23fff' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E")}
 [data-look="retro"] .hero::after{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' shape-rendering='crispEdges'%3E%3Cg fill='%23fff'%3E%3Crect x='10' y='40' width='20' height='20'/%3E%3Crect x='30' y='20' width='20' height='20'/%3E%3Crect x='30' y='60' width='20' height='20'/%3E%3Crect x='50' y='40' width='20' height='20'/%3E%3Crect x='70' y='20' width='20' height='20'/%3E%3Crect x='70' y='60' width='20' height='20'/%3E%3C/g%3E%3C/svg%3E")}
 [data-look] .hero.clear::after{filter:invert(1)}
+/* Vignette cliquable (page ami) */
+.tilebtn{border:0;background:none;padding:0;text-align:left;cursor:pointer;width:100%;color:inherit;display:block}
+.tilebtn:hover .tt{text-decoration:underline;text-decoration-color:var(--faint)}
+.detail{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.detail dt{color:var(--muted)}
+.detail dd{margin:0;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.detail dd.txt{font-family:inherit}
+.detail .sum{border-top:1px solid var(--line);padding-top:6px;font-weight:700}
 /* Squelette de chargement */
 .sk{background:linear-gradient(90deg,var(--surface-2) 25%,var(--line) 50%,var(--surface-2) 75%);background-size:200% 100%;animation:sk 1.2s ease-in-out infinite;border-radius:10px}
 @keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}
@@ -360,9 +368,8 @@ function render() {
         <div><div class="amt">BOX NO${esc(b.box)}</div><div class="note">${b.date ? 'Envoyée le ' + esc(b.date) : esc(b.note || 'Envoyée')} · ${b.items.length} objets${b.weight && b.weight !== '0 kg' ? ' · ' + esc(b.weight) : ''}</div></div>
         <div style="text-align:right"><div class="amt">${yen(b.total)}</div><div class="note">port ${b.port ? yen(b.port) : '—'}</div></div></button>`;
       if (isOpen) {
-        h += `<div class="hbody">${b.tracking ? `<p class="note">Suivi : ${esc(b.tracking)}</p>` : ''}<div class="mini">${sortItems(b.items).map(i => {
-          return `<div>${linked(i, thumb(i, 'lg'))}<div class="tt">${titled(i)}</div><div class="tp">${esc(i.platform)} · ${yen(i.price)}</div>${extras(i, true)}</div>`;
-        }).join('')}</div></div>`;
+        h += `<div class="hbody">${b.tracking ? `<p class="note">Suivi : ${esc(b.tracking)}</p>` : ''}<div class="mini">${sortItems(b.items).map(i =>
+          `<button type="button" class="tilebtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'lg')}<div class="tt">${esc(i.title)}</div></button>`).join('')}</div></div>`;
       }
     });
     h += `</div></section>`;
@@ -376,7 +383,37 @@ document.getElementById('refresh').addEventListener('click', async e => {
   try { D = await server('friend'); render(); toast('À jour'); } catch (x) { toast(x.message, true); }
   b.classList.remove('spin-on');
 });
+let detail = null;
+function renderDetail() {
+  document.getElementById('detail')?.remove();
+  if (!detail) return;
+  const i = detail, tip = D.tip;
+  const rows = [
+    ['Site', esc(i.platform), true], ['Acheté le', esc(i.date), true], ['Box', 'NO' + esc(i.box), true],
+    ['Prix d’achat', yen(i.price)],
+    i.commission ? [tip ? 'Pourboire' : 'Commission', yen(i.commission)] : null,
+    i.shipJp ? ['Port au Japon', yen(i.shipJp)] : null,
+    i.discount ? ['Remise', '− ' + yen(i.discount)] : null
+  ].filter(Boolean);
+  document.body.insertAdjacentHTML('beforeend', `<div class="sheet-wrap" id="detail" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-label="Détails de l’objet">
+    <button type="button" class="x" data-close="1" aria-label="Fermer">✕</button>
+    <h2>${esc(i.title)}</h2>
+    ${i.titleJp ? `<div class="jp" lang="ja">${esc(i.titleJp)}</div>` : ''}
+    <div style="max-width:260px;width:100%;justify-self:center">${thumb(i, 'lg')}</div>
+    <dl class="detail">${rows.map(([k, v, txt]) => `<dt>${k}</dt><dd class="${txt ? 'txt' : ''}">${v}</dd>`).join('')}
+      <dt class="sum">Total</dt><dd class="sum">${yen(i.total)}</dd></dl>
+    ${i.link ? `<a class="btn primary" href="${esc(i.link)}" style="text-decoration:none">Voir l’annonce sur ${esc(i.platform || 'le site')} ${EXT}</a>` : '<div class="note">Pas de lien vers l’annonce pour cet objet.</div>'}
+  </div></div>`);
+}
+
 document.addEventListener('click', e => {
+  const t = e.target.closest('[data-item]');
+  if (t) {
+    const row = Number(t.dataset.item);
+    detail = D.history.flatMap(b => b.items).find(x => x.row === row) || null;
+    renderDetail(); return;
+  }
+  if (e.target.closest('[data-close]') && (e.target.closest('.x') || e.target.id === 'detail')) { detail = null; renderDetail(); return; }
   if (e.target.closest('[data-more]')) { allPays = true; render(); return; }
   if (e.target.closest('[data-showmore]')) { const y = window.scrollY; shown += 10; render(); window.scrollTo(0, y); return; }
   const b = e.target.closest('[data-box]');
