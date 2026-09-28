@@ -288,7 +288,8 @@ function boxFacts(b, receiptAttrs, extra) {
  */
 function openItemSheet(i, o) {
   o = o || {};
-  document.getElementById('detail')?.remove();
+  const old = document.getElementById('detail');
+  if (old) old.remove();
   const rows = [
     ['Site', esc(i.platform || '—'), true], ['Acheté le', esc(i.date || '—'), true], ['Box', 'NO' + esc(i.box), true],
     ['Statut', pill(i.status, !o.admin), true],
@@ -374,7 +375,8 @@ async function shrinkPhoto(file) {
 }
 /** Reçu de la poste d'une box, affiché par-dessus la page (chargé à la demande). */
 async function showReceipt(box, payload) {
-  document.getElementById('receiptView')?.remove();
+  const old = document.getElementById('receiptView');
+  if (old) old.remove();
   document.body.insertAdjacentHTML('beforeend', `<div class="sheet-wrap" id="receiptView"><div class="sheet" role="dialog" aria-modal="true" aria-label="Reçu de la poste">
     <button type="button" class="x" aria-label="Fermer">✕</button>
     <h2>Reçu de la poste · BOX NO${esc(box)}</h2><div id="receiptBody"><div class="loading"><span class="spin"></span>Chargement du reçu…</div></div></div></div>`);
