@@ -284,7 +284,8 @@ function boxFacts(b, receiptAttrs, extra) {
 }
 /**
  * Fiche d'un objet, par-dessus la page : photo, prix détaillé, lien vers l'annonce.
- * o.tip : pourboire au lieu de commission · o.admin : vue de ton app · o.actions : boutons en plus (ex. Modifier).
+ * o.tip : pourboire au lieu de commission · o.tiered : commission à paliers (taux affiché)
+ * o.admin : vue de ton app · o.actions : boutons en plus (ex. Modifier).
  */
 function openItemSheet(i, o) {
   o = o || {};
@@ -294,7 +295,8 @@ function openItemSheet(i, o) {
     ['Site', esc(i.platform || '—'), true], ['Acheté le', esc(i.date || '—'), true], ['Box', 'NO' + esc(i.box), true],
     ['Statut', pill(i.status, !o.admin), true],
     ['Prix d’achat', yen(i.price)],
-    i.commission ? [o.tip ? 'Pourboire' : 'Commission', yen(i.commission)] : null,
+    // Amis à paliers (taux selon le prix) : le taux appliqué à cet objet.
+    i.commission ? [(o.tip ? 'Pourboire' : 'Commission') + (o.tiered && !o.tip && i.price ? ' (' + Math.round(i.commission / i.price * 100) + ' %)' : ''), yen(i.commission)] : null,
     i.shipJp ? ['Port au Japon', yen(i.shipJp)] : null,
     i.discount ? ['Remise', '− ' + yen(i.discount)] : null
   ].filter(Boolean);
@@ -432,7 +434,8 @@ function render() {
     ${transitCard(d.transit)}
     <section style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
       <h2 style="margin:0;font-size:22px">Ta BOX NO${esc(d.box)} <span class="pill neutral" style="vertical-align:3px">en cours</span></h2>
-      <span class="count">${d.items.length} objet${d.items.length > 1 ? 's' : ''} · ${yen(d.boxTotal)}</span></section>`;
+      <span class="count">${d.items.length} objet${d.items.length > 1 ? 's' : ''} · ${yen(d.boxTotal)}</span>
+      ${d.rule && d.rule.text && !d.tip ? `<div class="note" style="flex-basis:100%">Commission : ${esc(d.rule.text)}</div>` : ''}</section>`;
   const row = i => `<button type="button" class="irow rowbtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'sm')}
       <div class="grow"><div class="t" style="font-size:14px">${esc(i.title)}</div>
         <div class="meta">${pill(i.status, true)}<span>${esc(i.platform)} · ${esc(i.date)}</span></div></div>
@@ -485,7 +488,7 @@ document.addEventListener('click', e => {
   if (t) {
     const row = Number(t.dataset.item);
     const it = D.items.concat(D.history.flatMap(b => b.items)).find(x => x.row === row);
-    if (it) openItemSheet(it, { tip: D.tip });
+    if (it) openItemSheet(it, { tip: D.tip, tiered: !!(D.rule && D.rule.tiered) });
     return;
   }
   if (e.target.closest('[data-more]')) { allPays = true; render(); return; }
