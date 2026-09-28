@@ -132,6 +132,15 @@ textarea{min-height:150px;font-size:14px;line-height:1.5}
 .hrow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid var(--line);background:transparent;padding:12px 14px;text-align:left;cursor:pointer}
 .hrow:first-child{border-top:0}
 .hbody{padding:4px 14px 14px}
+.facts{display:grid;gap:6px;margin:0 0 12px;padding:10px 12px;background:var(--surface-2);border-radius:10px}
+.fact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:30px;font-size:13.5px}
+.fact .k{flex:none;width:48px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+.fact .mono{font-family:var(--mono)}
+.fact .acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chipbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:5px 11px;font-family:inherit;font-size:12.5px;cursor:pointer}
+.ic{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.busy{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12.5px}
+.busy .spin{width:14px;height:14px}
 .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 8px}
 .mini .tt{font-size:11.5px;line-height:1.25;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mini .tp{font-family:var(--mono);font-size:11px;color:var(--muted)}
@@ -263,6 +272,14 @@ function pill(status, friendView) {
 }
 // Icône standard « ouvrir dans un nouvel onglet ».
 const EXT = '<svg class="ext" viewBox="0 0 24 24" role="img" aria-label="ouvre le site"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+const ICON_RECEIPT = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>';
+const ICON_CAMERA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+/** Box envoyée, dépliée : suivi, puis port avec son reçu de la poste (la preuve du port) sur la même ligne. */
+function boxFacts(b, receiptAttrs, extra) {
+  return `<div class="facts">${b.tracking ? `<div class="fact"><span class="k">Suivi</span><span class="v mono">${esc(b.tracking)}</span></div>` : ''}
+    <div class="fact"><span class="k">Port</span><span class="v">${b.port ? yen(b.port) : '—'}</span>
+      <span class="acts">${b.receipt ? `<button type="button" class="chipbtn" ${receiptAttrs}>${ICON_RECEIPT}Voir le reçu</button>` : ''}${extra || ''}</span></div></div>`;
+}
 /** Entoure un bout de HTML d'un lien vers l'annonce, s'il y en a une. */
 const linked = (it, html) => (it.link ? `<a class="lnk" href="${esc(it.link)}">${html}</a>` : html);
 /** Titre cliquable, suivi de l'icône quand il y a une annonce. */
@@ -355,7 +372,7 @@ function transitCard(t) {
       <div class="note">Envoyée le ${esc(t.sent)}</div></div></div>
     <div><b>${esc(t.status)}</b>${t.date ? ` <span class="note">· ${esc(t.date)}</span>` : ''}${t.office ? `<div class="note">${esc(t.office)}</div>` : ''}</div>
     <div class="note">Suivi : <b style="font-family:var(--mono);color:var(--ink)">${esc(t.tracking)}</b></div>
-    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">🧾 Reçu</button>` : ''}</div>
+    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu de la poste</button>` : ''}</div>
   </div></section>`;
 }
 
@@ -410,9 +427,9 @@ function render() {
       const isOpen = open === b.box;
       h += `<button type="button" class="hrow" data-box="${esc(b.box)}" aria-expanded="${isOpen}">
         <div><div class="amt">BOX NO${esc(b.box)}</div><div class="note">${b.date ? 'Envoyée le ' + esc(b.date) : esc(b.note || 'Envoyée')} · ${b.items.length} objets${b.weight && b.weight !== '0 kg' ? ' · ' + esc(b.weight) : ''}</div></div>
-        <div style="text-align:right"><div class="amt">${yen(b.total)}</div><div class="note">port ${b.port ? yen(b.port) : '—'}${b.receipt ? ' 🧾' : ''}</div></div></button>`;
+        <div style="text-align:right"><div class="amt">${yen(b.total)}</div><div class="note">port ${b.port ? yen(b.port) : '—'}</div></div></button>`;
       if (isOpen) {
-        h += `<div class="hbody">${b.tracking || b.receipt ? `<div class="actions" style="margin-bottom:10px">${b.tracking ? `<span class="note">Suivi : ${esc(b.tracking)}</span>` : ''}${b.receipt ? `<button type="button" class="linkbtn" data-receipt="${esc(b.box)}">🧾 Reçu de la poste</button>` : ''}</div>` : ''}<div class="mini">${sortItems(b.items).map(i =>
+        h += `<div class="hbody">${boxFacts(b, `data-receipt="${esc(b.box)}"`)}<div class="mini">${sortItems(b.items).map(i =>
           `<button type="button" class="tilebtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'lg')}<div class="tt">${esc(i.title)}</div></button>`).join('')}</div></div>`;
       }
     });
