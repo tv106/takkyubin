@@ -315,6 +315,31 @@ async function server(action, payload) {
     clearTimeout(timer);
   }
 }
+/** Photo choisie → JPEG réduit (1600 px) en base64 : lisible, et léger à envoyer. */
+async function shrinkPhoto(file) {
+  const img = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+/** Reçu de la poste d'une box, affiché par-dessus la page (chargé à la demande). */
+async function showReceipt(box, payload) {
+  document.getElementById('receiptView')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `<div class="sheet-wrap" id="receiptView"><div class="sheet" role="dialog" aria-modal="true" aria-label="Reçu de la poste">
+    <button type="button" class="x" aria-label="Fermer">✕</button>
+    <h2>Reçu de la poste · BOX NO${esc(box)}</h2><div id="receiptBody"><div class="loading"><span class="spin"></span>Chargement du reçu…</div></div></div></div>`);
+  const view = document.getElementById('receiptView');
+  view.addEventListener('click', e => { if (e.target === view || e.target.closest('.x')) view.remove(); });
+  let html;
+  try {
+    const r = await server('receiptImg', payload);
+    html = `<img src="data:${esc(r.mime)};base64,${r.data}" alt="Reçu de la poste de la BOX NO${esc(box)}" style="width:100%;border-radius:10px;border:1px solid var(--line)">`;
+  } catch (e) { html = `<div class="note">${esc(e.message)}</div>`; }
+  const body = document.getElementById('receiptBody');
+  if (body) body.innerHTML = html;
+}
 </script>
 
 <script>
@@ -330,9 +355,11 @@ function transitCard(t) {
       <div class="note">Envoyée le ${esc(t.sent)}</div></div></div>
     <div><b>${esc(t.status)}</b>${t.date ? ` <span class="note">· ${esc(t.date)}</span>` : ''}${t.office ? `<div class="note">${esc(t.office)}</div>` : ''}</div>
     <div class="note">Suivi : <b style="font-family:var(--mono);color:var(--ink)">${esc(t.tracking)}</b></div>
-    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a></div>
+    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">🧾 Reçu</button>` : ''}</div>
   </div></section>`;
 }
+
+const hasReceipt = box => (D.history || []).some(b => b.box === String(box) && b.receipt);
 
 /** Sous le prix d'achat : commission, port au Japon et remise, s'il y en a. */
 function extras(i, tiny) {
@@ -383,9 +410,9 @@ function render() {
       const isOpen = open === b.box;
       h += `<button type="button" class="hrow" data-box="${esc(b.box)}" aria-expanded="${isOpen}">
         <div><div class="amt">BOX NO${esc(b.box)}</div><div class="note">${b.date ? 'Envoyée le ' + esc(b.date) : esc(b.note || 'Envoyée')} · ${b.items.length} objets${b.weight && b.weight !== '0 kg' ? ' · ' + esc(b.weight) : ''}</div></div>
-        <div style="text-align:right"><div class="amt">${yen(b.total)}</div><div class="note">port ${b.port ? yen(b.port) : '—'}</div></div></button>`;
+        <div style="text-align:right"><div class="amt">${yen(b.total)}</div><div class="note">port ${b.port ? yen(b.port) : '—'}${b.receipt ? ' 🧾' : ''}</div></div></button>`;
       if (isOpen) {
-        h += `<div class="hbody">${b.tracking ? `<p class="note">Suivi : ${esc(b.tracking)}</p>` : ''}<div class="mini">${sortItems(b.items).map(i =>
+        h += `<div class="hbody">${b.tracking || b.receipt ? `<div class="actions" style="margin-bottom:10px">${b.tracking ? `<span class="note">Suivi : ${esc(b.tracking)}</span>` : ''}${b.receipt ? `<button type="button" class="linkbtn" data-receipt="${esc(b.box)}">🧾 Reçu de la poste</button>` : ''}</div>` : ''}<div class="mini">${sortItems(b.items).map(i =>
           `<button type="button" class="tilebtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'lg')}<div class="tt">${esc(i.title)}</div></button>`).join('')}</div></div>`;
       }
     });
@@ -424,6 +451,8 @@ function renderDetail() {
 }
 
 document.addEventListener('click', e => {
+  const r = e.target.closest('[data-receipt]');
+  if (r) { showReceipt(r.dataset.receipt, { box: r.dataset.receipt }); return; }
   const t = e.target.closest('[data-item]');
   if (t) {
     const row = Number(t.dataset.item);
