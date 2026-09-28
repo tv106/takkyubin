@@ -320,6 +320,20 @@ async function server(action, payload) {
 <script>
 let D = null, open = null, allPays = false, shown = 10;
 
+/** Encart « ta box est en route » (dernier statut Japan Post). */
+function transitCard(t) {
+  if (!t) return '';
+  const icon = t.delivered ? '✓' : '📦';
+  return `<section><div class="card" style="border-color:var(--accent);gap:8px">
+    <div class="row" style="align-items:center"><div class="empty"><div class="ok" style="background:var(--accent-soft);color:var(--accent)">${icon}</div></div>
+      <div class="grow"><div class="t">Suivi de ta BOX NO${esc(t.box)} ${t.delivered ? '· arrivée' : '· en route'}</div>
+      <div class="note">Envoyée le ${esc(t.sent)}</div></div></div>
+    <div><b>${esc(t.status)}</b>${t.date ? ` <span class="note">· ${esc(t.date)}</span>` : ''}${t.office ? `<div class="note">${esc(t.office)}</div>` : ''}</div>
+    <div class="note">Suivi : <b style="font-family:var(--mono);color:var(--ink)">${esc(t.tracking)}</b></div>
+    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a></div>
+  </div></section>`;
+}
+
 /** Sous le prix d'achat : commission, port au Japon et remise, s'il y en a. */
 function extras(i, tiny) {
   const parts = [];
@@ -338,7 +352,10 @@ function render() {
       <div class="v">${yen(due)}</div>
       <div class="s">${due ? 'Tout ce qui reste à régler, toutes box confondues.' : 'Merci !'}</div>
     </section>
-    <section><div class="eyebrow">Ta BOX NO${esc(d.box)} <span class="count">${d.items.length} objets · ${yen(d.boxTotal)}</span></div></section>`;
+    ${transitCard(d.transit)}
+    <section style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <h2 style="margin:0;font-size:22px">Ta BOX NO${esc(d.box)} <span class="pill neutral" style="vertical-align:3px">en cours</span></h2>
+      <span class="count">${d.items.length} objet${d.items.length > 1 ? 's' : ''} · ${yen(d.boxTotal)}</span></section>`;
   const row = i => `<div class="irow">${linked(i, thumb(i, 'sm'))}
       <div class="grow"><div class="t" style="font-size:14px">${titled(i)}</div>
         <div class="meta">${pill(i.status, true)}<span>${esc(i.platform)} · ${esc(i.date)}</span></div></div>
@@ -346,7 +363,7 @@ function render() {
   const sorted = sortItems(d.items);
   const coming = sorted.filter(i => i.status === 'acheté' || i.status === 'en route');
   const here = sorted.filter(i => i.status === 'reçu' || i.status === 'partagé');
-  if (!d.items.length) h += `<section><div class="card note">Ta box est vide pour l’instant.</div></section>`;
+  if (!d.items.length) h += `<section><div class="card note">${d.transit ? 'Ta BOX NO' + esc(d.box) + ' vient de commencer : tes prochains achats apparaîtront ici.' : 'Ta box est vide pour l’instant.'}</div></section>`;
   if (coming.length) {
     h += `<section><div class="eyebrow">Pas encore arrivés <span class="count">${coming.length}</span></div><div class="card group">${coming.map(row).join('')}</div></section>`;
   }
