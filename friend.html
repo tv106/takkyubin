@@ -427,7 +427,7 @@ function render() {
       const isOpen = open === b.box;
       h += `<button type="button" class="hrow" data-box="${esc(b.box)}" aria-expanded="${isOpen}">
         <div><div class="amt">BOX NO${esc(b.box)}</div><div class="note">${b.date ? 'Envoyée le ' + esc(b.date) : esc(b.note || 'Envoyée')} · ${b.items.length} objets${b.weight && b.weight !== '0 kg' ? ' · ' + esc(b.weight) : ''}</div></div>
-        <div style="text-align:right"><div class="amt">${yen(b.total)}</div><div class="note">port ${b.port ? yen(b.port) : '—'}</div></div></button>`;
+        <div style="text-align:right"><div class="amt">${yen(b.total)}</div>${isOpen ? '' : `<div class="note">port ${b.port ? yen(b.port) : '—'}</div>`}</div></button>`;
       if (isOpen) {
         h += `<div class="hbody">${boxFacts(b, `data-receipt="${esc(b.box)}"`)}<div class="mini">${sortItems(b.items).map(i =>
           `<button type="button" class="tilebtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'lg')}<div class="tt">${esc(i.title)}</div></button>`).join('')}</div></div>`;
