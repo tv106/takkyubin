@@ -420,7 +420,14 @@ function loadReceipt(id, payload) {
   const hit = receiptCached(id);
   if (hit) return Promise.resolve(hit);
   if (id && receiptWait[id]) return receiptWait[id];
-  const p = server('receiptImg', payload).then(r => { if (id) receiptKeep(id, r); return r; });
+  // 6 petits morceaux demandés en même temps (chacun est refait seul s'il échoue), puis recollés.
+  const PARTS = 6, asks = [];
+  for (let i = 0; i < PARTS; i++) asks.push(server('receiptImg', Object.assign({}, payload, { part: i, parts: PARTS })));
+  const p = Promise.all(asks).then(rs => {
+    const r = { mime: rs[0].mime, data: rs.map(x => x.data).join('') };
+    if (id) receiptKeep(id, r);
+    return r;
+  });
   if (id) receiptWait[id] = p.finally(() => { delete receiptWait[id]; });
   return p;
 }
