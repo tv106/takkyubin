@@ -394,8 +394,43 @@ async function shrinkPhoto(file) {
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL('image/jpeg', 0.85).split(',')[1];
 }
-/** Reçu de la poste d'une box, affiché par-dessus la page (chargé à la demande). */
-async function showReceipt(box, payload) {
+/*
+ * Reçus déjà vus, retenus par l'identifiant de leur fichier (il change quand on remplace le reçu) :
+ * en mémoire, et dans le navigateur pour les 8 derniers (environ 300 Ko chacun).
+ */
+const receiptMem = {};
+function receiptCached(id) {
+  if (!id) return null;
+  if (receiptMem[id]) return receiptMem[id];
+  try { const v = localStorage.getItem('rcpt:' + id); if (v) return (receiptMem[id] = JSON.parse(v)); } catch (e) {}
+  return null;
+}
+function receiptKeep(id, r) {
+  receiptMem[id] = r;
+  try {
+    const keys = JSON.parse(localStorage.getItem('rcpt-keys') || '[]').filter(k => k !== id);
+    keys.push(id);
+    while (keys.length > 8) localStorage.removeItem('rcpt:' + keys.shift());
+    localStorage.setItem('rcpt-keys', JSON.stringify(keys));
+    localStorage.setItem('rcpt:' + id, JSON.stringify(r));
+  } catch (e) { /* stockage plein ou indisponible : la mémoire suffit pour cette visite */ }
+}
+const receiptWait = {};
+function loadReceipt(id, payload) {
+  const hit = receiptCached(id);
+  if (hit) return Promise.resolve(hit);
+  if (id && receiptWait[id]) return receiptWait[id];
+  const p = server('receiptImg', payload).then(r => { if (id) receiptKeep(id, r); return r; });
+  if (id) receiptWait[id] = p.finally(() => { delete receiptWait[id]; });
+  return p;
+}
+/** Chargement en arrière-plan (box dépliée) : le reçu est prêt quand on le touche. */
+function prefetchReceipt(id, payload) {
+  if (id && !receiptCached(id)) loadReceipt(id, payload).catch(() => {});
+}
+
+/** Reçu de la poste d'une box, affiché par-dessus la page (chargé à la demande, puis retenu). */
+async function showReceipt(box, payload, id) {
   const old = document.getElementById('receiptView');
   if (old) old.remove();
   document.body.insertAdjacentHTML('beforeend', `<div class="sheet-wrap" id="receiptView"><div class="sheet" role="dialog" aria-modal="true" aria-label="Reçu de la poste">
@@ -405,7 +440,7 @@ async function showReceipt(box, payload) {
   view.addEventListener('click', e => { if (e.target === view || e.target.closest('.x')) view.remove(); });
   let html;
   try {
-    const r = await server('receiptImg', payload);
+    const r = await loadReceipt(id, payload);
     html = `<img src="data:${esc(r.mime)};base64,${r.data}" alt="Reçu de la poste de la BOX NO${esc(box)}" style="width:100%;border-radius:10px;border:1px solid var(--line)">`;
   } catch (e) { html = `<div class="note">${esc(e.message)}</div>`; }
   const body = document.getElementById('receiptBody');
@@ -431,6 +466,11 @@ function transitCard(t) {
 }
 
 const hasReceipt = box => (D.history || []).some(b => b.box === String(box) && b.receipt);
+/** Identifiant du fichier du reçu d'une box (vide sans reçu). */
+function receiptIdOf(box) {
+  const b = (D.history || []).find(x => x.box === String(box));
+  return b && typeof b.receipt === 'string' ? b.receipt : '';
+}
 
 /** Sous le prix d'achat : commission, port au Japon et remise, s'il y en a. */
 function extras(i, tiny) {
@@ -501,7 +541,7 @@ document.getElementById('refresh').addEventListener('click', async e => {
 });
 document.addEventListener('click', e => {
   const r = e.target.closest('[data-receipt]');
-  if (r) { showReceipt(r.dataset.receipt, { box: r.dataset.receipt }); return; }
+  if (r) { showReceipt(r.dataset.receipt, { box: r.dataset.receipt }, receiptIdOf(r.dataset.receipt)); return; }
   // Objet de la box en cours ou d'une box précédente : sa fiche détaillée.
   const t = e.target.closest('[data-item]');
   if (t) {
@@ -516,6 +556,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   open = open === b.dataset.box ? null : b.dataset.box;
   render();
+  if (open) prefetchReceipt(receiptIdOf(open), { box: open });
 });
 
 (async () => {
