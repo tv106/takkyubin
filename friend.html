@@ -350,21 +350,40 @@ function copyText(text) {
   if (!ok && navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Copié'), () => toast('Copie impossible', true));
   else toast(ok ? 'Copié' : 'Copie impossible', !ok);
 }
+// Lectures sans effet de bord : on peut les refaire si Google renvoie une page d'erreur ou si la connexion saute.
+const READ_ACTIONS = ['state', 'details', 'friend', 'receiptImg', 'bilan', 'ynabCheck', 'ynabCategories'];
 async function server(action, payload) {
   const url = API_URL + '?k=' + encodeURIComponent(KEY) + '&a=' + encodeURIComponent(action)
     + (payload ? '&p=' + encodeURIComponent(JSON.stringify(payload)) : '') + '&t=' + Date.now();
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45000);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-    const body = await res.json();
+  const tries = READ_ACTIONS.indexOf(action) >= 0 ? 3 : 1;
+  let last = null;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, 1500 * attempt));
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    let text = '', status = 0;
+    try {
+      const res = await fetch(url + '&r=' + attempt, { signal: ctrl.signal, cache: 'no-store' });
+      status = res.status;
+      text = await res.text();
+    } catch (e) {
+      clearTimeout(timer);
+      if (e.name === 'AbortError') throw new Error('Le serveur ne répond pas, réessaie.');
+      last = new Error('Connexion impossible (' + e.message + ')');
+      continue;
+    }
+    clearTimeout(timer);
+    let body = null;
+    try { body = JSON.parse(text); } catch (e) {
+      // Page d'erreur de Google au lieu des données : on garde le début pour savoir ce que c'était.
+      last = new Error('Réponse inattendue de Google (HTTP ' + status + ') : '
+        + text.replace(/<(style|script)[\s\S]*?<\/(style|script)>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100));
+      continue;
+    }
     if (!body.ok) throw new Error(body.error || 'Erreur du serveur');
     return body.data;
-  } catch (e) {
-    throw new Error(e.name === 'AbortError' ? 'Le serveur ne répond pas, réessaie.' : e.message);
-  } finally {
-    clearTimeout(timer);
   }
+  throw last;
 }
 /** Photo choisie → JPEG réduit (1600 px) en base64 : lisible, et léger à envoyer. */
 async function shrinkPhoto(file) {
