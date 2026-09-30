@@ -351,14 +351,15 @@ function copyText(text) {
   else toast(ok ? 'Copié' : 'Copie impossible', !ok);
 }
 // Lectures sans effet de bord : on peut les refaire si Google renvoie une page d'erreur ou si la connexion saute.
-const READ_ACTIONS = ['state', 'details', 'friend', 'receiptImg', 'bilan', 'ynabCheck', 'ynabCategories'];
+const READ_ACTIONS = ['state', 'details', 'friend', 'boxItems', 'receiptImg', 'bilan', 'ynabCheck', 'ynabCategories'];
 async function server(action, payload) {
   const url = API_URL + '?k=' + encodeURIComponent(KEY) + '&a=' + encodeURIComponent(action)
     + (payload ? '&p=' + encodeURIComponent(JSON.stringify(payload)) : '') + '&t=' + Date.now();
-  const tries = READ_ACTIONS.indexOf(action) >= 0 ? 3 : 1;
+  // Un seul nouvel essai, espacé : quand Google est débordé, insister l'engorge davantage.
+  const tries = READ_ACTIONS.indexOf(action) >= 0 ? 2 : 1;
   let last = null;
   for (let attempt = 0; attempt < tries; attempt++) {
-    if (attempt) await new Promise(r => setTimeout(r, 1500 * attempt));
+    if (attempt) await new Promise(r => setTimeout(r, 4000));
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 45000);
     let text = '', status = 0;
@@ -528,16 +529,29 @@ function render() {
     d.history.forEach(b => {
       const isOpen = open === b.box;
       h += `<button type="button" class="hrow" data-box="${esc(b.box)}" aria-expanded="${isOpen}">
-        <div><div class="amt">BOX NO${esc(b.box)}</div><div class="note">${b.date ? 'Envoyée le ' + esc(b.date) : esc(b.note || 'Envoyée')} · ${b.items.length} objets${b.weight && b.weight !== '0 kg' ? ' · ' + esc(b.weight) : ''}</div></div>
+        <div><div class="amt">BOX NO${esc(b.box)}</div><div class="note">${b.date ? 'Envoyée le ' + esc(b.date) : esc(b.note || 'Envoyée')} · ${b.n} objet${b.n > 1 ? 's' : ''}${b.weight && b.weight !== '0 kg' ? ' · ' + esc(b.weight) : ''}</div></div>
         <div style="text-align:right"><div class="amt">${yen(b.total)}</div>${isOpen ? '' : `<div class="note">port ${b.port ? yen(b.port) : '—'}</div>`}</div></button>`;
       if (isOpen) {
-        h += `<div class="hbody">${boxFacts(b, `data-receipt="${esc(b.box)}"`)}<div class="mini">${sortItems(b.items).map(i =>
-          `<button type="button" class="tilebtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'lg')}<div class="tt">${esc(i.title)}</div></button>`).join('')}</div></div>`;
+        h += `<div class="hbody">${boxFacts(b, `data-receipt="${esc(b.box)}"`)}${boxTiles(b)}</div>`;
       }
     });
     h += `</div></section>`;
   }
   document.getElementById('view').innerHTML = h;
+}
+
+/** Contenu d'une box envoyée : chargé quand on la déplie, puis gardé. */
+const boxItems = {}, boxErr = {}, boxWait = {};
+function boxTiles(b) {
+  const items = boxItems[b.box];
+  if (items) return `<div class="mini">${sortItems(items).map(i =>
+    `<button type="button" class="tilebtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'lg')}<div class="tt">${esc(i.title)}</div></button>`).join('')}</div>`;
+  if (boxErr[b.box]) return `<div class="note">Contenu indisponible, touche la box pour réessayer.</div>`;
+  if (!boxWait[b.box]) {
+    boxWait[b.box] = server('boxItems', { box: b.box }).then(its => { boxItems[b.box] = its; }, () => { boxErr[b.box] = true; })
+      .then(() => { delete boxWait[b.box]; render(); });
+  }
+  return `<div class="mini">${Array.from({ length: Math.min(b.n || 3, 6) }, () => '<div class="sk" style="aspect-ratio:1"></div>').join('')}</div>`;
 }
 
 document.getElementById('refresh').addEventListener('click', async e => {
@@ -553,7 +567,8 @@ document.addEventListener('click', e => {
   const t = e.target.closest('[data-item]');
   if (t) {
     const row = Number(t.dataset.item);
-    const it = D.items.concat(D.history.flatMap(b => b.items)).find(x => x.row === row);
+    const past = Object.keys(boxItems).reduce((all, k) => all.concat(boxItems[k]), []);
+    const it = D.items.concat(past).find(x => x.row === row);
     if (it) openItemSheet(it, { tip: D.tip, tiered: !!(D.rule && D.rule.tiered) });
     return;
   }
@@ -562,6 +577,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-box]');
   if (!b) return;
   open = open === b.dataset.box ? null : b.dataset.box;
+  if (open) delete boxErr[open];
   render();
   if (open) prefetchReceipt(receiptIdOf(open), { box: open });
 });
