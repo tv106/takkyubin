@@ -18,7 +18,7 @@
     var base = location.origin + location.pathname.replace(/[^/]*$/, '');
     var start = location.href;
     var m = { name: 'Ma box', short_name: 'Ma box', lang: 'fr', display: 'standalone', start_url: start, scope: base,
-      background_color: '#F6F2EC', theme_color: '#F6F2EC',
+      background_color: '#F2F3F3', theme_color: '#F2F3F3',
       icons: [{ src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png' }] };
     document.addEventListener('DOMContentLoaded', function () {
       document.querySelector('link[rel=manifest]').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
@@ -30,23 +30,23 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
 :root{
-  /* Thème par défaut « Akane » : vermillon de la poste japonaise sur papier chaud. */
-  --bg:#F6F2EC; --surface:#FFFFFF; --surface-2:#EFE9E1; --line:#E4DDD3;
-  --ink:#1E1A17; --muted:#6B635B; --faint:#A1988E;
-  --accent:#B8432F; --accent-ink:#FFFFFF; --accent-soft:#F6E2DC;
+  /* Thème par défaut « Nezumi » : gris ardoise, neutre ; le tampon rouge et l'étiquette kraft font les touches de couleur. */
+  --bg:#F2F3F3; --surface:#FFFFFF; --surface-2:#E9EBEC; --line:#DCDFE2;
+  --ink:#1B1E22; --muted:#626870; --faint:#9A9FA6;
+  --accent:#474D55; --accent-ink:#FFFFFF; --accent-soft:#E3E6E9;
   --hanko:#C4342C; --ok:#17744F; --ok-soft:#DFF2E8; --warn:#9A5B06; --warn-soft:#FAEFD9;
   --kraft-soft:#F1E6D5; --kraft-line:#DCC7A6;
   --thumb-s:42%; --thumb-l:88%; --thumb-ink:34%;
-  --shadow:0 1px 2px rgba(40,26,18,.05),0 6px 20px rgba(40,26,18,.07);
+  --shadow:0 1px 2px rgba(20,24,30,.05),0 6px 20px rgba(20,24,30,.07);
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root{
     color-scheme:dark;
-    --bg:#12100E; --surface:#1B1816; --surface-2:#24201D; --line:#352F2A;
-    --ink:#EDE7E1; --muted:#AA9F95; --faint:#766D64;
-    --accent:#F08A74; --accent-ink:#1A0E0B; --accent-soft:#3A1E18;
+    --bg:#101214; --surface:#181B1E; --surface-2:#212529; --line:#2E3338;
+    --ink:#E7E9EB; --muted:#A0A6AD; --faint:#6E747B;
+    --accent:#B7BEC6; --accent-ink:#101214; --accent-soft:#262B31;
     --hanko:#E45B52; --ok:#4FC392; --ok-soft:#13302A; --warn:#E3A850; --warn-soft:#33270F;
     --kraft-soft:#2A2319; --kraft-line:#4A3D2A;
     --thumb-s:28%; --thumb-l:24%; --thumb-ink:78%; --shadow:none;
