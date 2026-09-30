@@ -383,9 +383,9 @@ async function askOnce(url, ms, ctrl) {
  * Une action (paiement, modification…) n'est envoyée qu'une fois : elle ne doit pas être enregistrée deux fois.
  */
 function server(action, payload) {
+  if (READ_ACTIONS.indexOf(action) < 0) return sendAction(action, payload);
   const url = API_URL + '?k=' + encodeURIComponent(KEY) + '&a=' + encodeURIComponent(action)
     + (payload ? '&p=' + encodeURIComponent(JSON.stringify(payload)) : '') + '&t=' + Date.now();
-  if (READ_ACTIONS.indexOf(action) < 0) return askOnce(url, 45000, new AbortController());
   return new Promise((resolve, reject) => {
     const MAX = 4, ctrls = [];
     let done = false, launched = 0, failed = 0, last = null, timer = null;
@@ -411,6 +411,22 @@ function server(action, payload) {
     launch();
     timer = setInterval(launch, 6000);
   });
+}
+/**
+ * Action (paiement, attribution…) : numérotée (rid) puis renvoyée au plus 2 fois si Google perd la réponse.
+ * Le serveur reconnaît le numéro d'une action déjà faite et renvoie son résultat sans la refaire.
+ */
+async function sendAction(action, payload) {
+  const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const url = API_URL + '?k=' + encodeURIComponent(KEY) + '&a=' + encodeURIComponent(action)
+    + '&p=' + encodeURIComponent(JSON.stringify(Object.assign({}, payload || {}, { rid: rid }))) + '&t=' + Date.now();
+  let last = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, 2000));
+    try { return await askOnce(url + '&r=' + attempt, 30000, new AbortController()); }
+    catch (e) { if (e.app) throw e; last = e; }
+  }
+  throw last;
 }
 /** Photo choisie → JPEG réduit (1600 px) en base64 : lisible, et léger à envoyer. */
 async function shrinkPhoto(file) {
