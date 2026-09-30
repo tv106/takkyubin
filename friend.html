@@ -350,41 +350,67 @@ function copyText(text) {
   if (!ok && navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Copié'), () => toast('Copie impossible', true));
   else toast(ok ? 'Copié' : 'Copie impossible', !ok);
 }
-// Lectures sans effet de bord : on peut les refaire si Google renvoie une page d'erreur ou si la connexion saute.
+// Lectures sans effet de bord : on peut les doubler ou les refaire sans risque.
 const READ_ACTIONS = ['state', 'details', 'friend', 'boxItems', 'receiptImg', 'bilan', 'ynabCheck', 'ynabCategories'];
-async function server(action, payload) {
+
+/** Une demande au serveur. Erreur « app » (refus, donnée invalide) : à ne pas refaire ; sinon erreur passagère de Google. */
+async function askOnce(url, ms, ctrl) {
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  let text = '', status = 0;
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    status = res.status;
+    text = await res.text();
+  } catch (e) {
+    throw new Error(e.name === 'AbortError' ? 'Le serveur ne répond pas, réessaie.' : 'Connexion impossible (' + e.message + ')');
+  } finally {
+    clearTimeout(timer);
+  }
+  let body = null;
+  try { body = JSON.parse(text); } catch (e) {
+    // Page d'erreur de Google au lieu des données : on garde le début pour savoir ce que c'était.
+    throw new Error('Réponse inattendue de Google (HTTP ' + status + ') : '
+      + text.replace(/<(style|script)[\s\S]*?<\/(style|script)>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100));
+  }
+  if (!body.ok) { const err = new Error(body.error || 'Erreur du serveur'); err.app = true; throw err; }
+  return body.data;
+}
+
+/**
+ * Appel au serveur. Google met parfois 10 s ou plus à rendre une réponse que le script a produite en 1 s,
+ * ou renvoie une page d'erreur ; d'une demande à l'autre, c'est aléatoire. Pour une lecture, si la réponse tarde
+ * (6 s) ou échoue, une nouvelle demande part en parallèle (4 au plus) et la première réponse l'emporte.
+ * Une action (paiement, modification…) n'est envoyée qu'une fois : elle ne doit pas être enregistrée deux fois.
+ */
+function server(action, payload) {
   const url = API_URL + '?k=' + encodeURIComponent(KEY) + '&a=' + encodeURIComponent(action)
     + (payload ? '&p=' + encodeURIComponent(JSON.stringify(payload)) : '') + '&t=' + Date.now();
-  // Un seul nouvel essai, espacé : quand Google est débordé, insister l'engorge davantage.
-  const tries = READ_ACTIONS.indexOf(action) >= 0 ? 2 : 1;
-  let last = null;
-  for (let attempt = 0; attempt < tries; attempt++) {
-    if (attempt) await new Promise(r => setTimeout(r, 4000));
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 45000);
-    let text = '', status = 0;
-    try {
-      const res = await fetch(url + '&r=' + attempt, { signal: ctrl.signal, cache: 'no-store' });
-      status = res.status;
-      text = await res.text();
-    } catch (e) {
-      clearTimeout(timer);
-      if (e.name === 'AbortError') throw new Error('Le serveur ne répond pas, réessaie.');
-      last = new Error('Connexion impossible (' + e.message + ')');
-      continue;
-    }
-    clearTimeout(timer);
-    let body = null;
-    try { body = JSON.parse(text); } catch (e) {
-      // Page d'erreur de Google au lieu des données : on garde le début pour savoir ce que c'était.
-      last = new Error('Réponse inattendue de Google (HTTP ' + status + ') : '
-        + text.replace(/<(style|script)[\s\S]*?<\/(style|script)>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100));
-      continue;
-    }
-    if (!body.ok) throw new Error(body.error || 'Erreur du serveur');
-    return body.data;
-  }
-  throw last;
+  if (READ_ACTIONS.indexOf(action) < 0) return askOnce(url, 45000, new AbortController());
+  return new Promise((resolve, reject) => {
+    const MAX = 4, ctrls = [];
+    let done = false, launched = 0, failed = 0, last = null, timer = null;
+    const finish = (fn, v) => {
+      if (done) return;
+      done = true; clearInterval(timer);
+      ctrls.forEach(c => c.abort());
+      fn(v);
+    };
+    const launch = () => {
+      if (done || launched >= MAX) return;
+      launched++;
+      const ctrl = new AbortController();
+      ctrls.push(ctrl);
+      askOnce(url + '&r=' + launched, 30000, ctrl).then(v => finish(resolve, v), e => {
+        if (done) return;
+        if (e.app) { finish(reject, e); return; }
+        last = e; failed++;
+        if (failed >= MAX) finish(reject, last);
+        else launch();
+      });
+    };
+    launch();
+    timer = setInterval(launch, 6000);
+  });
 }
 /** Photo choisie → JPEG réduit (1600 px) en base64 : lisible, et léger à envoyer. */
 async function shrinkPhoto(file) {
