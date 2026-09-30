@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Takkyubin">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#F2F3F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F2EC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest?v=3">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -17,8 +17,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
 <style>
   /* Enveloppe de l'app : aucune donnée ici, tout est chargé depuis Google Apps Script. */
-  :root { --bg: #F2F3F6; --ink: #161D33; --muted: #5F6880; --red: #C4342C; color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #0E1117; --ink: #E6E9F0; --muted: #9BA3B5; --red: #E45B52; color-scheme: dark; } }
+  :root { --bg: #F6F2EC; --ink: #1E1A17; --muted: #6B635B; --red: #C4342C; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #12100E; --ink: #EDE7E1; --muted: #AA9F95; --red: #E45B52; color-scheme: dark; } }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: -apple-system, "Hiragino Sans", system-ui, sans-serif; }
   #frame { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); bottom: 0; width: 100%; height: calc(100% - env(safe-area-inset-top, 0px)); border: 0; background: var(--bg); opacity: 0; transition: opacity .2s; }
   #frame.ready { opacity: 1; }
@@ -29,7 +29,7 @@
   .msg { max-width: 320px; padding: 0 24px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5; }
   .msg b { color: var(--ink); }
   form { display: grid; gap: 10px; width: min(340px, calc(100% - 48px)); }
-  input { font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 1px solid #DDE1E8; background: #fff; color: #161D33; }
+  input { font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 1px solid #E4DDD3; background: #fff; color: #1E1A17; }
   button { font: inherit; font-weight: 700; font-size: 16px; padding: 12px; border: 0; border-radius: 12px; background: #23407E; color: #fff; }
   .err { color: var(--red); font-size: 14px; min-height: 1.2em; text-align: center; }
 </style>
@@ -60,7 +60,7 @@
     const start = base + (friend ? '?f=' : '?k=') + encodeURIComponent(token);
     const manifest = {
       name: 'Takkyubin', short_name: 'Takkyubin', lang: 'fr', display: 'standalone', scope: base, start_url: start,
-      background_color: '#F2F3F6', theme_color: '#F2F3F6',
+      background_color: '#F6F2EC', theme_color: '#F6F2EC',
       icons: [
         { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png' },

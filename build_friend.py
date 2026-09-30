@@ -37,7 +37,7 @@ head = '''<title>Ma box · Takkyubin</title>
     var base = location.origin + location.pathname.replace(/[^/]*$/, '');
     var start = location.href;
     var m = { name: 'Ma box', short_name: 'Ma box', lang: 'fr', display: 'standalone', start_url: start, scope: base,
-      background_color: '#F2F3F6', theme_color: '#F2F3F6',
+      background_color: '#F6F2EC', theme_color: '#F6F2EC',
       icons: [{ src: base + 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png' }] };
     document.addEventListener('DOMContentLoaded', function () {
       document.querySelector('link[rel=manifest]').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
