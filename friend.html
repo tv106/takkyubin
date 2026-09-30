@@ -311,6 +311,7 @@ function openItemSheet(i, o) {
     <div style="max-width:260px;width:100%;justify-self:center">${thumb(i, 'lg')}</div>
     <dl class="detail">${rows.map(([k, v, txt]) => `<dt>${k}</dt><dd class="${txt ? 'txt' : ''}">${v}</dd>`).join('')}
       <dt class="sum">Total</dt><dd class="sum">${yen(i.total)}</dd></dl>
+    ${o.admin && i.points ? `<div class="note">Payé en partie avec tes points (${yen(i.points)}) : YNAB enregistre ${yen(i.price + (i.shipJp || 0) - i.points)}.</div>` : ''}
     ${i.link ? `<a class="btn ${o.actions ? 'ghost' : 'primary'}" href="${esc(i.link)}" style="text-decoration:none${o.actions ? ';color:inherit' : ''}">Voir l’annonce sur ${esc(i.platform || 'le site')} ${EXT}</a>`
       : '<div class="note">Pas de lien vers l’annonce pour cet objet.</div>'}
     ${o.actions || ''}
