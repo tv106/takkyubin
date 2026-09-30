@@ -273,7 +273,8 @@ function pill(status, friendView) {
   if (status === 'envoyé') return `<span class="pill ok">Envoyé</span>`;
   if (status === 'partagé') return `<span class="pill neutral">Partagé</span>`;
   if (status === 'en route') return `<span class="pill warn">En route</span>`;
-  return `<span class="pill neutral">${friendView ? 'Acheté' : 'Pas expédié'}</span>`;
+  // Acheté mais pas encore envoyé par le vendeur : même libellé dans ton app et sur la page de l'ami.
+  return `<span class="pill neutral">Pas expédié</span>`;
 }
 // Icône standard « ouvrir dans un nouvel onglet ».
 const EXT = '<svg class="ext" viewBox="0 0 24 24" role="img" aria-label="ouvre le site"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
