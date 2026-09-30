@@ -466,10 +466,10 @@ function transitCard(t) {
   return `<section><div class="card" style="border-color:var(--accent);gap:8px">
     <div class="row" style="align-items:center"><div class="empty"><div class="ok" style="background:var(--accent-soft);color:var(--accent)">${icon}</div></div>
       <div class="grow"><div class="t">Suivi de ta BOX NO${esc(t.box)} ${t.delivered ? '· arrivée' : '· en route'}</div>
-      <div class="note">Envoyée le ${esc(t.sent)}</div></div></div>
+      <div class="note">Envoyée le ${esc(t.sent)}</div></div><button type="button" class="iconbtn" data-track="1" aria-label="Actualiser le suivi" title="Actualiser le suivi"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button></div>
     <div><b>${esc(t.status)}</b>${t.date ? ` <span class="note">· ${esc(t.date)}</span>` : ''}${t.office ? `<div class="note">${esc(t.office)}</div>` : ''}</div>
     <div class="note">Suivi : <b style="font-family:var(--mono);color:var(--ink)">${esc(t.tracking)}</b></div>
-    <div class="actions"><button type="button" class="chipbtn" data-track="1">↻ Actualiser</button><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu de la poste</button>` : ''}</div>
+    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu</button>` : ''}</div>
   </div></section>`;
 }
 
@@ -563,7 +563,7 @@ document.getElementById('refresh').addEventListener('click', async e => {
 document.addEventListener('click', async e => {
   const tb = e.target.closest('[data-track]');
   if (tb) {
-    tb.disabled = true; tb.textContent = 'Actualisation…';
+    tb.disabled = true; tb.classList.add('spin-on');
     try {
       const t0 = JSON.stringify(D.transit || null), tr = await server('track');
       D.transit = tr;
