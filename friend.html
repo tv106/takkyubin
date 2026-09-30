@@ -269,7 +269,7 @@ function thumb(it, cls) {
   return `<div class="thumb ${cls || ''}" style="--h:${h}" aria-hidden="true">${img || g}</div>`;
 }
 function pill(status, friendView) {
-  if (status === 'reçu') return `<span class="pill ok">${friendView ? 'Arrivé' : 'Reçu'}</span>`;
+  if (status === 'reçu') return `<span class="pill ok">Reçu</span>`;
   if (status === 'envoyé') return `<span class="pill ok">Envoyé</span>`;
   if (status === 'partagé') return `<span class="pill neutral">Partagé</span>`;
   if (status === 'en route') return `<span class="pill warn">En route</span>`;
