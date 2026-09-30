@@ -469,7 +469,7 @@ function transitCard(t) {
       <div class="note">Envoyée le ${esc(t.sent)}</div></div></div>
     <div><b>${esc(t.status)}</b>${t.date ? ` <span class="note">· ${esc(t.date)}</span>` : ''}${t.office ? `<div class="note">${esc(t.office)}</div>` : ''}</div>
     <div class="note">Suivi : <b style="font-family:var(--mono);color:var(--ink)">${esc(t.tracking)}</b></div>
-    <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu de la poste</button>` : ''}</div>
+    <div class="actions"><button type="button" class="chipbtn" data-track="1">↻ Actualiser</button><a class="linkbtn" href="${esc(t.jpUrl)}">Suivi Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">Suivi La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu de la poste</button>` : ''}</div>
   </div></section>`;
 }
 
@@ -560,7 +560,18 @@ document.getElementById('refresh').addEventListener('click', async e => {
   try { D = await server('friend'); render(); toast('À jour'); } catch (x) { toast(x.message, true); }
   b.classList.remove('spin-on');
 });
-document.addEventListener('click', e => {
+document.addEventListener('click', async e => {
+  const tb = e.target.closest('[data-track]');
+  if (tb) {
+    tb.disabled = true; tb.textContent = 'Actualisation…';
+    try {
+      const t0 = JSON.stringify(D.transit || null), tr = await server('track');
+      D.transit = tr;
+      toast(JSON.stringify(tr || null) === t0 ? 'Pas de nouvelle étape' : 'Suivi à jour');
+    } catch (x) { toast(x.message, true); }
+    render();
+    return;
+  }
   const r = e.target.closest('[data-receipt]');
   if (r) { showReceipt(r.dataset.receipt, { box: r.dataset.receipt }, receiptIdOf(r.dataset.receipt)); return; }
   // Objet de la box en cours ou d'une box précédente : sa fiche détaillée.
