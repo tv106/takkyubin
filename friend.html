@@ -539,7 +539,7 @@ function extras(i, tiny) {
 function render() {
   const d = D;
   const due = Math.max(0, d.balance);
-  let h = `<h1>Bonjour ${esc(d.name)}</h1>
+  let h = `<h1>Bonjour ${esc(d.nick || d.name)}</h1>
     <section class="hero ${due ? '' : 'clear'}">
       <div class="k">${due ? 'Reste à payer' : 'Tout est réglé'}</div>
       <div class="v">${yen(due)}</div>
