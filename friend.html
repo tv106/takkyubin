@@ -181,7 +181,9 @@ textarea{min-height:150px;font-size:14px;line-height:1.5}
 .hero .v{font-family:var(--mono);font-size:34px;font-weight:500;line-height:1.1}
 .hero .s{font-size:13.5px;opacity:.85}
 .hero.clear{background:var(--ok-soft);color:var(--ok)}
-.hero .paybtn{justify-self:start;margin-top:10px;background:var(--accent-ink);color:var(--accent);text-decoration:none;position:relative;z-index:1}
+.hero .paybtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;position:relative;z-index:1}
+.hero .paybtn{background:var(--accent-ink);color:var(--accent)}
+.hero .paybtn[aria-expanded="true"]{outline:2px solid var(--accent-ink);outline-offset:2px}
 .seg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .seg::-webkit-scrollbar{display:none}
 .seg .fchip{flex:none}
@@ -505,7 +507,7 @@ async function showReceipt(box, payload, id) {
 </script>
 
 <script>
-let D = null, open = null, allPays = false, shown = 10;
+let D = null, open = null, allPays = false, shown = 10, payOpen = null;
 
 /** Encart « ta box est en route » (dernier statut Japan Post). */
 function transitCard(t) {
@@ -520,6 +522,41 @@ function transitCard(t) {
     <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu</button>` : ''}</div>
     <button type="button" class="btn sm ${t.delivered ? 'primary' : 'ghost'}" data-gotbox="1" style="justify-self:start">✓ J’ai reçu ma box</button>
   </div></section>`;
+}
+
+/** Boutons « Payer avec … » : son moyen habituel d'abord ; seulement ceux que tu as réglés dans l'app. */
+function payButtons(d) {
+  const pay = d.pay || {};
+  const ways = ['paypal', 'wise'].filter(w => pay[w]);
+  if (/wise/i.test(d.method || '')) ways.reverse();
+  if (!ways.length) return '';
+  return `<div class="paybtns">${ways.map(w => `<button type="button" class="btn paybtn" data-pay="${w}" aria-expanded="${payOpen === w}">Payer avec ${w === 'paypal' ? 'PayPal' : 'Wise'}</button>`).join('')}</div>`;
+}
+
+/** Marche à suivre du moyen choisi, avec le montant en yens. */
+function payPanel(d, due) {
+  const amount = `<b style="font-family:var(--mono)">${yen(due)}</b> (en yens, JPY)`;
+  if (payOpen === 'paypal' && d.pay.paypal) {
+    const p = d.pay.paypal;
+    return `<section><div class="card" style="gap:10px">
+      <div class="t">Payer avec PayPal</div>
+      <ol class="note" style="margin:0;padding-left:18px;display:grid;gap:8px">
+        <li>Copie mon adresse PayPal : <b style="color:var(--ink)">${esc(p.email)}</b> <button type="button" class="linkbtn" data-copy="${esc(p.email)}">Copier</button></li>
+        <li>Ouvre PayPal, choisis <b>Envoyer</b> et colle l’adresse.</li>
+        <li>Montant : ${amount} <button type="button" class="linkbtn" data-copy="${due}">Copier</button></li>
+      </ol>
+      <a class="btn primary" href="${esc(p.url)}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir PayPal ${EXT}</a>
+    </div></section>`;
+  }
+  if (payOpen === 'wise' && d.pay.wise) {
+    const w = d.pay.wise;
+    return `<section><div class="card" style="gap:10px">
+      <div class="t">Payer avec Wise</div>
+      <div class="note">Le lien ouvre Wise sur mon compte (@${esc(w.tag)}). Montant : ${amount} <button type="button" class="linkbtn" data-copy="${due}">Copier</button></div>
+      <a class="btn primary" href="${esc(w.url + '?amount=' + due + '&currency=JPY')}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir Wise ${EXT}</a>
+    </div></section>`;
+  }
+  return '';
 }
 
 const hasReceipt = box => (D.history || []).some(b => b.box === String(box) && b.receipt);
@@ -546,8 +583,9 @@ function render() {
       <div class="k">${due ? 'Reste à payer' : 'Tout est réglé'}</div>
       <div class="v">${yen(due)}</div>
       <div class="s">${due ? 'Tout ce qui reste à régler, toutes box confondues.' : 'Merci !'}</div>
-      ${due && d.paypal ? `<a class="btn paybtn" href="${esc(d.paypal + '/' + due + 'JPY')}" target="_blank" rel="noopener">Payer avec PayPal ${EXT}</a>` : ''}
+      ${due ? payButtons(d) : ''}
     </section>
+    ${due && payOpen ? payPanel(d, due) : ''}
     ${transitCard(d.transit)}
     <section style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
       <h2 style="margin:0;font-size:22px">Ta BOX NO${esc(d.box)} <span class="pill neutral" style="vertical-align:3px">en cours</span></h2>
@@ -622,6 +660,10 @@ document.addEventListener('click', async e => {
     render();
     return;
   }
+  const pb = e.target.closest('[data-pay]');
+  if (pb) { payOpen = payOpen === pb.dataset.pay ? null : pb.dataset.pay; render(); return; }
+  const cp = e.target.closest('[data-copy]');
+  if (cp) { copyText(cp.dataset.copy); return; }
   // « J'ai reçu ma box » : l'encart de suivi disparaît (ici et dans l'app).
   const gb = e.target.closest('[data-gotbox]');
   if (gb) {
