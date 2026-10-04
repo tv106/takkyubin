@@ -181,6 +181,7 @@ textarea{min-height:150px;font-size:14px;line-height:1.5}
 .hero .v{font-family:var(--mono);font-size:34px;font-weight:500;line-height:1.1}
 .hero .s{font-size:13.5px;opacity:.85}
 .hero.clear{background:var(--ok-soft);color:var(--ok)}
+.hero .paybtn{justify-self:start;margin-top:10px;background:var(--accent-ink);color:var(--accent);text-decoration:none;position:relative;z-index:1}
 .seg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .seg::-webkit-scrollbar{display:none}
 .seg .fchip{flex:none}
@@ -517,6 +518,7 @@ function transitCard(t) {
     <div><b>${esc(t.status)}</b>${t.date ? ` <span class="note">· ${esc(t.date)}</span>` : ''}${t.office ? `<div class="note">${esc(t.office)}</div>` : ''}</div>
     <div class="note">Suivi : <b style="font-family:var(--mono);color:var(--ink)">${esc(t.tracking)}</b></div>
     <div class="actions"><a class="linkbtn" href="${esc(t.jpUrl)}">Japan Post ${EXT}</a><a class="linkbtn" href="${esc(t.frUrl)}">La Poste ${EXT}</a>${hasReceipt(t.box) ? `<button type="button" class="linkbtn" data-receipt="${esc(t.box)}">${ICON_RECEIPT} Reçu</button>` : ''}</div>
+    <button type="button" class="btn sm ${t.delivered ? 'primary' : 'ghost'}" data-gotbox="1" style="justify-self:start">✓ J’ai reçu ma box</button>
   </div></section>`;
 }
 
@@ -544,6 +546,7 @@ function render() {
       <div class="k">${due ? 'Reste à payer' : 'Tout est réglé'}</div>
       <div class="v">${yen(due)}</div>
       <div class="s">${due ? 'Tout ce qui reste à régler, toutes box confondues.' : 'Merci !'}</div>
+      ${due && d.paypal ? `<a class="btn paybtn" href="${esc(d.paypal + '/' + due + 'JPY')}" target="_blank" rel="noopener">Payer avec PayPal ${EXT}</a>` : ''}
     </section>
     ${transitCard(d.transit)}
     <section style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
@@ -617,6 +620,18 @@ document.addEventListener('click', async e => {
       toast(JSON.stringify(tr || null) === t0 ? 'Pas de nouvelle étape' : 'Suivi à jour');
     } catch (x) { toast(x.message, true); }
     render();
+    return;
+  }
+  // « J'ai reçu ma box » : l'encart de suivi disparaît (ici et dans l'app).
+  const gb = e.target.closest('[data-gotbox]');
+  if (gb) {
+    if (!confirm('Confirmer la réception de ta BOX NO' + D.transit.box + ' ? Le suivi disparaîtra de ta page.')) return;
+    gb.disabled = true;
+    try {
+      toast(await server('boxReceived'));
+      D.transit = null;
+      render();
+    } catch (x) { gb.disabled = false; toast(x.message, true); }
     return;
   }
   const r = e.target.closest('[data-receipt]');
