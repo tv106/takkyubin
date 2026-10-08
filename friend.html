@@ -97,7 +97,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
 .pill.neutral{background:var(--surface-2);color:var(--muted)}
-.pill.eta{background:var(--accent-soft);color:var(--accent)}
+.pill.eta{background:var(--warn-soft);color:var(--warn)}
 .note{font-size:13px;color:var(--muted)}
 a.lnk{color:inherit;text-decoration:none}
 a.lnk:hover{text-decoration:underline;text-decoration-color:var(--faint)}
@@ -119,8 +119,8 @@ a.lnk:hover{text-decoration:underline;text-decoration-color:var(--faint)}
 .tile .tp{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
 .tile.dim .thumb{opacity:.45}
 .tile .pill{position:absolute;top:6px;left:6px}
-/* Date d'envoi d'une précommande : sous le titre (le statut et le crayon occupent déjà le haut de la photo). */
-.tile .pill.eta{position:static;display:inline-block;margin-top:4px;white-space:normal;line-height:1.3}
+/* Date d'envoi d'une précommande : une ligne sous le prix (le statut et le crayon occupent déjà le haut de la photo). */
+.tile .eta{font-size:11.5px;font-weight:600;color:var(--warn);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bal{font-family:var(--mono);font-size:24px;font-weight:500}
 .bal.clear{color:var(--ok)}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -278,7 +278,7 @@ function thumb(it, cls) {
 }
 /** Précommande : date d'envoi annoncée par la boutique, tant que l'objet n'est pas expédié. */
 function etaPill(i) {
-  return i.eta && i.status === 'acheté' ? `<span class="pill eta">Envoi prévu ${esc(i.eta)}</span>` : '';
+  return i.eta && i.status === 'acheté' ? `<span class="pill eta">⏳ Envoi ${esc(i.eta)}</span>` : '';
 }
 function pill(status, friendView) {
   if (status === 'reçu') return `<span class="pill ok">Reçu</span>`;
