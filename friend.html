@@ -97,6 +97,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
 .pill.neutral{background:var(--surface-2);color:var(--muted)}
+.pill.eta{background:var(--accent-soft);color:var(--accent)}
 .note{font-size:13px;color:var(--muted)}
 a.lnk{color:inherit;text-decoration:none}
 a.lnk:hover{text-decoration:underline;text-decoration-color:var(--faint)}
@@ -273,6 +274,10 @@ function thumb(it, cls) {
   const img = it.photo ? `<img src="${esc(it.photo)}" alt="" loading="lazy" onerror="this.remove()">` : '';
   return `<div class="thumb ${cls || ''}" style="--h:${h}" aria-hidden="true">${img || g}</div>`;
 }
+/** Précommande : date d'envoi annoncée par la boutique, tant que l'objet n'est pas expédié. */
+function etaPill(i) {
+  return i.eta && i.status === 'acheté' ? `<span class="pill eta">Envoi prévu ${esc(i.eta)}</span>` : '';
+}
 function pill(status, friendView) {
   if (status === 'reçu') return `<span class="pill ok">Reçu</span>`;
   if (status === 'envoyé') return `<span class="pill ok">Envoyé</span>`;
@@ -302,7 +307,7 @@ function openItemSheet(i, o) {
   if (old) old.remove();
   const rows = [
     ['Site', esc(i.platform || '—'), true], ['Acheté le', esc(i.date || '—'), true], ['Box', 'NO' + esc(i.box), true],
-    ['Statut', pill(i.status, !o.admin), true],
+    ['Statut', pill(i.status, !o.admin) + ' ' + etaPill(i), true],
     ['Prix d’achat', yen(i.price)],
     // Amis à paliers (taux selon le prix) : le taux appliqué à cet objet.
     i.commission ? [(o.tip ? 'Pourboire' : 'Commission') + (o.tiered && !o.tip && i.price ? ' (' + Math.round(i.commission / i.price * 100) + ' %)' : ''), yen(i.commission)] : null,
@@ -595,7 +600,7 @@ function render() {
       ${d.rule && d.rule.text && !d.tip ? `<div class="note" style="flex-basis:100%">Commission : ${esc(d.rule.text)}</div>` : ''}</section>`;
   const row = i => `<button type="button" class="irow rowbtn" data-item="${i.row}" aria-label="Détails : ${esc(i.title)}">${thumb(i, 'sm')}
       <div class="grow"><div class="t" style="font-size:14px">${esc(i.title)}</div>
-        <div class="meta">${pill(i.status, true)}<span>${esc(i.platform)} · ${esc(i.date)}</span></div></div>
+        <div class="meta">${pill(i.status, true)}${etaPill(i)}<span>${esc(i.platform)} · ${esc(i.date)}</span></div></div>
       <div style="text-align:right"><div class="amt">${yen(i.price)}</div>${extras(i)}</div></button>`;
   const sorted = sortItems(d.items);
   const coming = sorted.filter(i => i.status === 'acheté' || i.status === 'en route');
